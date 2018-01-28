@@ -54,6 +54,6 @@ String namesFromUIArray[20];
 int stringFromUILinesCount = 0;
 
 // Do we want debugging on serial out? 1 for yes, 0 for no
-int debug = 1;
+int debug = 0;
 
 
