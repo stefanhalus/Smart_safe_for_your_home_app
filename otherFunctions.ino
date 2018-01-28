@@ -75,6 +75,7 @@ void PowerLedByAlarmState()
 // Return true when # key is pressed
 bool UserIsertedANewCode()
 {
+  bool result = false;
   if (!digitalRead(multiplexorPin))
   {
     // Use readKeypad() to get a binary representation for
@@ -87,18 +88,58 @@ bool UserIsertedANewCode()
     char key = keyMap[row][col];
     if (key == '#')
     {
-      return true;
+      result = true;
     }
     ProcessInsertedKey(key);
     PrintInsertedKey(key);
   }
-  return false;
+  return result;
+}
+
+char ReadKey()
+{
+  char key = '-';
+  if (!digitalRead(multiplexorPin))
+  {
+    // Use readKeypad() to get a binary representation for
+    // which row and column are pressed
+    unsigned int keyData = multiplexor.readKeypad();
+    // Use the getRow, and getCol helper functions to find
+    // which row and column keyData says are active.
+    byte row = multiplexor.getRow(keyData);
+    byte col = multiplexor.getCol(keyData);
+    key = keyMap[row][col];
+  }
+  return key;
 }
 
 bool IsAValidCode()
 {
-  bool result = codeInserted == code;
+  bool result = false;
+  if (codeInserted == masterCode)
+  {
+    result = true;
+  }
+  if (IsAUserCode())
+  {
+    result = true;
+  }
+  
   codeInserted = "";
+  return result;
+}
+
+bool IsAUserCode()
+{
+  bool result = false;
+  for (int i = 0; i < stringFromUILinesCount; i++)
+  {
+    if (codeInserted == passwordsFromUIArray[i])
+    {
+      result = true; 
+      ShowMessage("Hello " + namesFromUIArray[i], 2000);
+    }
+  }
   return result;
 }
 
@@ -110,6 +151,10 @@ void ProcessInsertedKey(char key) {
   if (key == '*')
   {
     codeInserted = "";
+  }
+  if (key == 'C' && codeInserted == "")
+  {
+    changeCodeKeyPressed = true;
   }
 }
 
@@ -154,7 +199,15 @@ void PrintSystemStatusOnLcd()
   lcd.blink();
 }
 
-void ShowErrorMessage(String message, int delayTime)
+void PrintMessageOnLcd(String message)
+{
+  lcd.clear();
+  lcd.print(message);
+  lcd.setCursor(0, 1);
+  lcd.blink();
+}
+
+void ShowMessage(String message, int delayTime)
 {
   lcd.clear();
   lcd.print(message);
@@ -166,7 +219,7 @@ void SwitchSystemState()
 {
   if (armRequestedByUser)
   {
-    Log("System disarmed");
+    Serial.println("System Ready");
     armRequestedByUser = false;
     movementDetected = false;
     smsHaveToBeSent = false;
@@ -174,7 +227,7 @@ void SwitchSystemState()
   }
   else
   {
-    Log("System Armed");
+    Serial.println("System Armed");
     armRequestedByUser = true;
     armedRequestedTime = millis();
     movementDetected = false;
@@ -197,11 +250,12 @@ void CheckFirstMovementDetected()
 bool MovementDetectedNow()
 {
   int valPir = analogRead(pirSensorPin);
+  bool result = false;
   if (valPir > 150)
   {
-    return true;
+    result = true;
   }
-  return false;
+  return result;
 }
 
 void SendSms()
@@ -217,14 +271,17 @@ void SendSms()
 
 bool SystemIsArmed()
 {
+  bool result = false;
   if (armRequestedByUser && ArmingDelayExceeded())
   {
-    return true;
+    result = true;
   }
   else
   {
-    return false;
+    result = false;
   }
+
+  return result;
 }
 
 bool ArmingDelayExceeded()
@@ -235,5 +292,151 @@ bool ArmingDelayExceeded()
 bool DisarmingDelayExceeded()
 {
   return millis() > (movementDetectedTime + disarmDelayTime);
+}
+
+bool UserAllowedToChangeCode()
+{
+  changeCodeKeyPressed = false;
+  bool result = false;
+  if (codeInserted == "" && !armRequestedByUser)
+  {
+    result = true;
+  }
+  return result;
+}
+
+bool CodeChanged()
+{
+  bool result = false;
+  if (CodeChangeConfirmed())
+  {
+    PrintMessageOnLcd("Old code ?");
+    while(true)
+    {
+      if (UserIsertedANewCode()) 
+      {
+        if (IsAValidCode()) 
+        {
+          PrintMessageOnLcd("New code");
+          String firstNewCode = GetNewCode();
+          PrintMessageOnLcd("Confirm new code");
+          String secondNewCode = GetNewCode();
+          if(firstNewCode == secondNewCode)
+          {
+            masterCode = firstNewCode;
+            Log("code changed to " + (String)masterCode);
+            result = true;
+            break;
+          }
+          else
+          {
+            break;
+          }
+        }
+        else 
+        {
+          break;
+        }
+      }  
+    }
+    
+  }
+  
+  return result;
+}
+
+bool CodeChangeConfirmed()
+{
+  bool result = false;
+  PrintMessageOnLcd("Change code ?");
+  while(true)
+  {
+    if(ReadKey() == '#')
+    {
+      result = true;
+      break;
+    }
+    if(ReadKey() == '*')
+    {
+      result = false;
+      break;
+    }
+  }
+  return result;
+}
+
+String GetNewCode()
+{
+  String result = "";
+  while(true)
+  {
+    if (UserIsertedANewCode()) 
+    {
+      result = codeInserted;
+      codeInserted = "";
+      break;
+    }
+  }
+  return result;
+}
+
+void ParseUsersString()
+{
+  stringFromUILinesCount = GetNumberOfLines();
+  Log("lines : " + (String)stringFromUILinesCount);
+  String line = "";
+  int j = 0;
+  int stringLength = stringFromUI.length();
+  for(int i = 0; i < stringLength; i++)
+  {
+    if(stringFromUI.charAt(i) == '|')
+    {
+      SetNameAndPassword(line, j);
+      line = "";
+      j++;
+    }
+    else
+    {
+      line += stringFromUI.charAt(i);  
+    }
+  }
+  //return result;
+}
+
+int GetNumberOfLines()
+{
+  int result = 0; 
+  for(int i = 0; i < stringFromUI.length(); i++)
+  {
+    if(stringFromUI.charAt(i) == '|')
+    {
+      result++;
+    }
+  }
+  return result;
+}
+
+void SetNameAndPassword(String line, int j)
+{
+  String stringArray[3];
+  String temp = "";
+  int k = 0;
+  char separator = ',';
+  for(int i = 0; i< line.length(); i++)
+  {
+    if(line.charAt(i) == separator)
+    {
+      stringArray[k] = temp;
+      temp = "";
+      k++;
+    }
+    else
+    {
+      temp += line.charAt(i);  
+    }
+  }
+  
+  namesFromUIArray[j] = stringArray[1];
+  passwordsFromUIArray[j] = stringArray[2];
 }
 

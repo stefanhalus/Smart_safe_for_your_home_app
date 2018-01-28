@@ -38,14 +38,9 @@ void setup(){
   //Being serial communication witj Arduino and SIM800
   serialSIM800.begin(115200);
   delay(2000);
-  //Serial.println("Setup Complete!");
+  Serial.println("System Ready");
 
   Log("Initializez modulul sim  sa fie sms");
   serialSIM800.write("AT+CMGF=1\r\n");  //Set SMS format to ASCII
-  //delay(1000);
-  //serialSIM800.write("AT+CMGS=\"0748580080\"\r\n");  //Send new SMS command and message number
-  
-  
-
 }   
 
