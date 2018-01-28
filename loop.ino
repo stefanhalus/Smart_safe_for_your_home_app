@@ -4,15 +4,31 @@ void loop() {
 
 
   //Read and process the inserted code
-  if (UserIsertedANewCode()) {
-    if (IsAValidCode()) {
+  if (UserIsertedANewCode()) 
+  {
+    if (IsAValidCode()) 
+    {
       SwitchSystemState();
     }
-    else {
-      ShowErrorMessage("InvalidCode", 3000);
+    else 
+    {
+      ShowMessage("InvalidCode", 3000);
     }
   }
 
+  //Change code
+  if (changeCodeKeyPressed && UserAllowedToChangeCode())
+  {
+    if (CodeChanged())
+    {
+      ShowMessage("Success", 3000);
+    }
+    else
+    {
+      ShowMessage("Fail", 3000);
+    }
+  }
+  
   // System Armed
   // If there is a signal from Pir sensor, wait for the code
   // If the disarm delay time exceeds make noise and send SMS
@@ -29,9 +45,29 @@ void loop() {
       }
     }
   }
-
-  // Captează consola SIM și o imprimă pe consola Arduino
-//  if (serialSIM800.available()) {
-//    Serial.write(serialSIM800.read());
-//  }
+  
+  if (Serial.available() > 0)
+  {
+    char charReadFromSerial = Serial.read();
+    //Log((String)charReadFromSerial);
+    //Sync users and passwords
+    if (charReadFromSerial == '#')
+    {
+      delay(500);
+      ParseUsersString();
+    }
+    // Sync phone number to send SMS
+    if (charReadFromSerial == '$')
+    {
+      phoneNumber = stringFromUI;
+    }
+    else if (charReadFromSerial == '*')
+    {
+      stringFromUI = "";
+    }
+    else
+    {
+      stringFromUI += (String)charReadFromSerial;    
+    }  
+  }
 }
