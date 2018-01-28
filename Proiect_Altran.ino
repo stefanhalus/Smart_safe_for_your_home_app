@@ -19,6 +19,7 @@ LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 #define SIM800_RX_PIN 9
 //Create software serial object to communicate with SIM800
 SoftwareSerial serialSIM800(SIM800_TX_PIN, SIM800_RX_PIN);
+String phoneNumber = "0742068839";
 
 //Matrix Keyboard Multiplexor
 const byte SX1509_ADDRESS = 0x3E;  // SX1509 I2C address (00)
@@ -53,6 +54,6 @@ String namesFromUIArray[20];
 int stringFromUILinesCount = 0;
 
 // Do we want debugging on serial out? 1 for yes, 0 for no
-int debug = 0;
+int debug = 1;
 
 

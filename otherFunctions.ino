@@ -260,7 +260,8 @@ bool MovementDetectedNow()
 
 void SendSms()
 {
-  serialSIM800.write("AT+CMGS=\"0742068839\"\r\n");  //Send new SMS command and message number
+  //String firstMsg = "AT+CMGS=\"" + phoneNumber + "\"\r\n";
+  serialSIM800.write("AT+CMGS=\"0733120758\"\r\n");  //Send new SMS command and message number
   delay(400);
   serialSIM800.write("Alerta de intruziune!  A intrat cineva in locatie si nu a dezarmat corect alarma.");  //Send SMS content
   delay(400);

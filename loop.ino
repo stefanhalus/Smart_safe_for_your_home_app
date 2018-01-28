@@ -50,10 +50,16 @@ void loop() {
   {
     char charReadFromSerial = Serial.read();
     //Log((String)charReadFromSerial);
+    //Sync users and passwords
     if (charReadFromSerial == '#')
     {
       delay(500);
       ParseUsersString();
+    }
+    // Sync phone number to send SMS
+    if (charReadFromSerial == '$')
+    {
+      phoneNumber = stringFromUI;
     }
     else if (charReadFromSerial == '*')
     {
